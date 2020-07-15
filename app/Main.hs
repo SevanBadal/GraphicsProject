@@ -81,12 +81,12 @@ main = bracketGLFW $ do
             texture0 <- peek texture0P
             glBindTexture GL_TEXTURE_2D texture0
             -- wrapping and filtering params would go here.
-            eErrDI0 <- readImage "app/brick.jpg"
+            eErrDI0 <- readImage "app/numbers.png"
             dyImage0 <- case eErrDI0 of
                 Left e -> do
                     putStrLn e
                     return $ ImageRGB8 $ generateImage (\x y ->
-                        let x' = fromIntegral x in PixelRGB8 x' x' x') 600 600
+                        let x' = fromIntegral x in PixelRGB8 x' x' x') 500 400
                 Right di -> return di
             let ipixelrgb80 = convertRGB8 dyImage0
                 iWidth0 = fromIntegral $ imageWidth ipixelrgb80
@@ -95,10 +95,11 @@ main = bracketGLFW $ do
             VS.unsafeWith iData0 $ \dataP ->
                 glTexImage2D GL_TEXTURE_2D 0 GL_RGB iWidth0 iHeight0 0 GL_RGB GL_UNSIGNED_BYTE (castPtr dataP)
             glGenerateMipmap GL_TEXTURE_2D
-            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER GL_NEAREST_MIPMAP_NEAREST
-            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER GL_NEAREST_MIPMAP_NEAREST
-            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_S GL_CLAMP_TO_EDGE
-            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_T GL_CLAMP_TO_EDGE
+            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER GL_LINEAR
+            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER GL_LINEAR
+            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_S GL_REPEAT
+            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_T GL_REPEAT
+
             glBindTexture GL_TEXTURE_2D 0
 
             -- setup Ico verticies

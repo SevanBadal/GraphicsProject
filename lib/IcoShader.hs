@@ -21,7 +21,7 @@ icoVertexShaderSource = unlines [
     ,"    gl_Position =  projection * view * model * vec4(position, 1.0);"
     ,"    u_resolution = res;"
     ,"    ourTri = gl_Position;"
-    ,"    TexCoord = texCoord;"
+    ,"    TexCoord = vec2(texCoord.x, 1.0f - texCoord.y);"
     ,"    ourColor = color; // Set ourColor to the input color we got from the vertex data"
     ,"}"]
 
