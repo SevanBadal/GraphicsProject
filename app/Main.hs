@@ -74,12 +74,39 @@ main = bracketGLFW $ do
                 Left e -> putStrLn e >> return 0
                 Right p -> return p
 
+
+            -- Load texture 1
+            texture0P <- malloc
+            glGenTextures 1 texture0P
+            texture0 <- peek texture0P
+            glBindTexture GL_TEXTURE_2D texture0
+            -- wrapping and filtering params would go here.
+            eErrDI0 <- readImage "app/brick.jpg"
+            dyImage0 <- case eErrDI0 of
+                Left e -> do
+                    putStrLn e
+                    return $ ImageRGB8 $ generateImage (\x y ->
+                        let x' = fromIntegral x in PixelRGB8 x' x' x') 600 600
+                Right di -> return di
+            let ipixelrgb80 = convertRGB8 dyImage0
+                iWidth0 = fromIntegral $ imageWidth ipixelrgb80
+                iHeight0 = fromIntegral $ imageHeight ipixelrgb80
+                iData0 = imageData ipixelrgb80
+            VS.unsafeWith iData0 $ \dataP ->
+                glTexImage2D GL_TEXTURE_2D 0 GL_RGB iWidth0 iHeight0 0 GL_RGB GL_UNSIGNED_BYTE (castPtr dataP)
+            glGenerateMipmap GL_TEXTURE_2D
+            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER GL_NEAREST_MIPMAP_NEAREST
+            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER GL_NEAREST_MIPMAP_NEAREST
+            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_S GL_CLAMP_TO_EDGE
+            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_T GL_CLAMP_TO_EDGE
+            glBindTexture GL_TEXTURE_2D 0
+
             -- setup Ico verticies
             let icoVerticiesSize = fromIntegral $ sizeOf (0.0 :: GLfloat) * (length Ico.verticies)
             icoVerticesP <- newArray Ico.verticies
             -- setup Ico indicies
-            let ico_indicesSize = fromIntegral $ sizeOf (0::GLuint) * (length Ico.indicies)
-            ico_indicesP <- newArray Ico.indicies
+            -- let ico_indicesSize = fromIntegral $ sizeOf (0::GLuint) * (length Ico.indicies)
+            -- ico_indicesP <- newArray Ico.indicies
 
             -- Ico: setup vao
             ico_vaoP <- malloc
@@ -93,21 +120,26 @@ main = bracketGLFW $ do
             glBindBuffer GL_ARRAY_BUFFER ico_vbo
             glBufferData GL_ARRAY_BUFFER icoVerticiesSize (castPtr icoVerticesP) GL_STATIC_DRAW
             -- Ico: element buffer object
-            ico_eboP <- malloc
-            glGenBuffers 1 ico_eboP
-            ico_ebo <- peek ico_eboP
-            glBindBuffer GL_ELEMENT_ARRAY_BUFFER ico_ebo
-            glBufferData GL_ELEMENT_ARRAY_BUFFER ico_indicesSize (castPtr ico_indicesP) GL_STATIC_DRAW
+            -- ico_eboP <- malloc
+            -- glGenBuffers 1 ico_eboP
+            -- ico_ebo <- peek ico_eboP
+            -- glBindBuffer GL_ELEMENT_ARRAY_BUFFER ico_ebo
+            -- glBufferData GL_ELEMENT_ARRAY_BUFFER ico_indicesSize (castPtr ico_indicesP) GL_STATIC_DRAW
             -- Ico: attrib pointer info
-            let ico_stride = fromIntegral $ sizeOf (0.0::GLfloat) * 6 -- colors are with verts
-            glVertexAttribPointer 0 3 GL_FLOAT GL_FALSE ico_stride nullPtr
-            glEnableVertexAttribArray 0
-            -- Ico: color attribute
             let floatSize = (fromIntegral $ sizeOf (0.0::GLfloat)) :: GLsizei
-            let ico_color_stride = castPtr $ plusPtr nullPtr (fromIntegral $ 3 * floatSize )
-            glVertexAttribPointer 1 3 GL_FLOAT GL_FALSE (6 * floatSize) ico_color_stride -- offset by 3 floats
-            glEnableVertexAttribArray 1
+            glVertexAttribPointer 0 3 GL_FLOAT GL_FALSE (5*floatSize) nullPtr
+            glEnableVertexAttribArray 0
+            -- Texture
+            let threeFloatOffset = castPtr $ plusPtr nullPtr (fromIntegral $ 3*floatSize)
+            glVertexAttribPointer 2 2 GL_FLOAT GL_FALSE (5*floatSize) threeFloatOffset
+            glEnableVertexAttribArray 2
             glBindVertexArray 0
+            -- Ico: color attribute
+            -- let floatSize = (fromIntegral $ sizeOf (0.0::GLfloat)) :: GLsizei
+            -- let ico_color_stride = castPtr $ plusPtr nullPtr (fromIntegral $ 3 * floatSize )
+            -- glVertexAttribPointer 1 3 GL_FLOAT GL_FALSE (6 * floatSize) ico_color_stride -- offset by 3 floats
+            -- glEnableVertexAttribArray 1
+            -- glBindVertexArray 0
             -- done with Ico
 
             -- Uniforms: init names
@@ -150,7 +182,11 @@ main = bracketGLFW $ do
                         -- ICO
                         glUseProgram ico_shaderProgram
                         glBindVertexArray ico_vao
-
+                        -- bind textures using texture units
+                        glActiveTexture GL_TEXTURE0
+                        glBindTexture GL_TEXTURE_2D texture0
+                        our0Loc <- glGetUniformLocation ico_shaderProgram ourTexture0
+                        glUniform1i our0Loc 0
                         -- UNIFORMS
                         resLoc <- glGetUniformLocation ico_shaderProgram res
                         modelLoc <- glGetUniformLocation ico_shaderProgram model
@@ -172,7 +208,8 @@ main = bracketGLFW $ do
                             poke modelP (transpose modelMat)
                             glUniformMatrix4fv modelLoc 1 GL_FALSE (castPtr modelP)
                             glUniform2f resLoc (screenWidthF) (screenHeightF)
-                            glDrawElements GL_TRIANGLES 60 GL_UNSIGNED_INT nullPtr
+                            glDrawArrays GL_TRIANGLES 0 60
+                            -- glDrawElements GL_TRIANGLES 60 GL_UNSIGNED_INT nullPtr
                         glBindVertexArray 0
                         -- swap buffers and go again
                         GLFW.swapBuffers window
