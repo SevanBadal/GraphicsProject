@@ -37,6 +37,9 @@ icoFragmentShaderSource = unlines [
     ,"in vec4 ourTri;"
     ,"void main()"
     ,"{"
+    ,"    float ambientStrength = 0.4;"
+    ,"    vec3 ambient = vec3(1.0, 0.5, 0.5) * ambientStrength;"
+    ,"    vec4 ambientColor = vec4(ambient, 1.0);"
     ,"    vec2 st = gl_FragCoord.xy/u_resolution.xy;"
     ,"    color = texture(ourTexture1,TexCoord);"
     ,"}"]
