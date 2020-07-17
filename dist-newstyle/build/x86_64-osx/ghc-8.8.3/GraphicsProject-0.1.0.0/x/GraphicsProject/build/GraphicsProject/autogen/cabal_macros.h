@@ -77,6 +77,17 @@
   (major1) == 0 && (major2) == 9 && (minor) <= 0)
 #endif /* MIN_VERSION_gl */
 
+/* package lens-4.19.2 */
+#ifndef VERSION_lens
+#define VERSION_lens "4.19.2"
+#endif /* VERSION_lens */
+#ifndef MIN_VERSION_lens
+#define MIN_VERSION_lens(major1,major2,minor) (\
+  (major1) <  4 || \
+  (major1) == 4 && (major2) <  19 || \
+  (major1) == 4 && (major2) == 19 && (minor) <= 2)
+#endif /* MIN_VERSION_lens */
+
 /* package linear-1.21.1 */
 #ifndef VERSION_linear
 #define VERSION_linear "1.21.1"

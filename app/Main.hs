@@ -11,6 +11,11 @@ import IcoShader
 import Mouse
 import Camera
 import Keys
+import Control.Lens
+import qualified Light as Light
+import qualified Card as Card
+import LightShader
+import CardShader
 import qualified Icosahedron as Ico
 import Graphics.GL.Core33 -- ensure support for Version 330
 import qualified Graphics.UI.GLFW as GLFW
@@ -22,7 +27,7 @@ import Data.Bits
 import Data.IORef
 import Graphics.GL.Types
 -- JuicyPixels for textures
-import Codec.Picture (readImage, generateImage, convertRGB8, DynamicImage(..), Image(..), PixelRGB8(..))
+import Codec.Picture (readImage, generateImage, convertRGBA8, convertRGB8, DynamicImage(..), Image(..), PixelRGB8(..), PixelRGBA8(..))
 import qualified Data.Vector.Storable as VS
 import Linear -- Transformation and Projection support
 import qualified Data.Set as S
@@ -40,6 +45,9 @@ bracketGLFW act = bracket GLFW.init (const GLFW.terminate) $ \initWorked ->
 
 toViewMatrix :: Camera -> M44 GLfloat
 toViewMatrix (Camera pos front up) = lookAt pos (pos ^+^ front) up
+
+getCameraPos :: Camera -> V3 GLfloat
+getCameraPos (Camera pos _ _) = pos
 
 main :: IO ()
 main = bracketGLFW $ do
@@ -64,8 +72,6 @@ main = bracketGLFW $ do
             GLFW.makeContextCurrent (Just window)
             (x,y) <- GLFW.getFramebufferSize window
             glViewport 0 0 (fromIntegral x) (fromIntegral y)
-
-            -- enable depth testing in our display
             glEnable GL_DEPTH_TEST
 
             -- ready Icosahedron Shader Program
@@ -73,34 +79,77 @@ main = bracketGLFW $ do
             ico_shaderProgram <- case ico_eErrP of
                 Left e -> putStrLn e >> return 0
                 Right p -> return p
+            
+            -- ready Light Shader Program
+            light_eErrP <- programFromSources lightVertexShaderSource lightFragmentShaderSource
+            light_shaderProgram <- case light_eErrP of
+                Left e -> putStrLn e >> return 0
+                Right p -> return p
 
+            -- ready card Shader Program
+            card_eErrP <- programFromSources cardVertexShaderSource cardFragmentShaderSource
+            card_shaderProgram <- case card_eErrP of
+                Left e -> putStrLn e >> return 0
+                Right p -> return p
 
-            -- Load texture 1
-            texture0P <- malloc
-            glGenTextures 1 texture0P
-            texture0 <- peek texture0P
-            glBindTexture GL_TEXTURE_2D texture0
+            glActiveTexture GL_TEXTURE0
+            -- ICO texture
+            dice_textureP <- malloc
+            glGenTextures 1 dice_textureP
+            diceText <- peek dice_textureP
+            glBindTexture GL_TEXTURE_2D diceText
+            glEnable GL_BLEND
+            glBlendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
+            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER GL_LINEAR
+            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER GL_LINEAR
+            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_S GL_REPEAT
+            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_T GL_REPEAT
             -- wrapping and filtering params would go here.
             eErrDI0 <- readImage "app/numbers.png"
             dyImage0 <- case eErrDI0 of
                 Left e -> do
                     putStrLn e
-                    return $ ImageRGB8 $ generateImage (\x y ->
-                        let x' = fromIntegral x in PixelRGB8 x' x' x') 500 400
+                    return $ ImageRGBA8 $ generateImage (\x y ->
+                        let x' = fromIntegral x in (PixelRGBA8 x' x' x' x')) 500 400
                 Right di -> return di
-            let ipixelrgb80 = convertRGB8 dyImage0
-                iWidth0 = fromIntegral $ imageWidth ipixelrgb80
-                iHeight0 = fromIntegral $ imageHeight ipixelrgb80
-                iData0 = imageData ipixelrgb80
+            let ipixelrgba80 = convertRGBA8 dyImage0
+                iWidth0 = fromIntegral $ imageWidth ipixelrgba80
+                iHeight0 = fromIntegral $ imageHeight ipixelrgba80
+                iData0 = imageData ipixelrgba80
             VS.unsafeWith iData0 $ \dataP ->
-                glTexImage2D GL_TEXTURE_2D 0 GL_RGB iWidth0 iHeight0 0 GL_RGB GL_UNSIGNED_BYTE (castPtr dataP)
+                glTexImage2D GL_TEXTURE_2D 0 GL_RGBA iWidth0 iHeight0 0 GL_RGBA GL_UNSIGNED_BYTE (castPtr dataP)
             glGenerateMipmap GL_TEXTURE_2D
-            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER GL_LINEAR
-            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER GL_LINEAR
-            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_S GL_REPEAT
-            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_T GL_REPEAT
-
             glBindTexture GL_TEXTURE_2D 0
+
+            glActiveTexture GL_TEXTURE1
+            -- ready the card texture
+            card_oneP <- malloc
+            glGenTextures 1 card_oneP
+            card_oneTexture <- peek card_oneP
+            glBindTexture GL_TEXTURE_2D card_oneTexture
+            glDisable GL_BLEND
+            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER GL_NEAREST_MIPMAP_NEAREST
+            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER GL_NEAREST_MIPMAP_NEAREST
+            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_S GL_CLAMP_TO_EDGE
+            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_T GL_CLAMP_TO_EDGE
+            eErrDI1 <- readImage "app/card_one.jpg"
+            dyImage1 <- case eErrDI1 of
+                Left e -> do
+                    putStrLn e
+                    return $ ImageRGBA8 $ generateImage (\x y ->
+                        let x' = fromIntegral x in (PixelRGBA8 x' x' x' x')) 312 445
+                Right di -> return di
+            let ipixelrgb81 = convertRGBA8 dyImage1
+                iWidth1 = fromIntegral $ imageWidth ipixelrgb81
+                iHeight1 = fromIntegral $ imageHeight ipixelrgb81
+                iData1 = imageData ipixelrgb81
+            VS.unsafeWith iData1 $ \dataP ->
+                glTexImage2D GL_TEXTURE_2D 0 GL_RGBA iWidth0 iHeight0 0 GL_RGBA GL_UNSIGNED_BYTE (castPtr dataP)
+            glGenerateMipmap GL_TEXTURE_2D
+            glBindTexture GL_TEXTURE_2D 0
+
+            let floatSize = (fromIntegral $ sizeOf (0.0::GLfloat)) :: GLsizei
+            let threeFloatOffset = castPtr $ plusPtr nullPtr (fromIntegral $ 3*floatSize)
 
             -- setup Ico verticies
             let icoVerticiesSize = fromIntegral $ sizeOf (0.0 :: GLfloat) * (length Ico.verticies)
@@ -108,6 +157,14 @@ main = bracketGLFW $ do
             -- setup Ico indicies
             -- let ico_indicesSize = fromIntegral $ sizeOf (0::GLuint) * (length Ico.indicies)
             -- ico_indicesP <- newArray Ico.indicies
+
+            -- Setup Card verticies
+            let cardVerticesSize = fromIntegral $ sizeOf (0.0 :: GLfloat) * (length Card.verticies)
+            cardVerticesP <- newArray Card.verticies
+
+            -- Setup Light verticies
+            let lightVerticesSize = fromIntegral $ sizeOf (0.0 :: GLfloat) * (length Light.verticies)
+            lightVerticesP <- newArray Light.verticies
 
             -- Ico: setup vao
             ico_vaoP <- malloc
@@ -127,27 +184,62 @@ main = bracketGLFW $ do
             -- glBindBuffer GL_ELEMENT_ARRAY_BUFFER ico_ebo
             -- glBufferData GL_ELEMENT_ARRAY_BUFFER ico_indicesSize (castPtr ico_indicesP) GL_STATIC_DRAW
             -- Ico: attrib pointer info
-            let floatSize = (fromIntegral $ sizeOf (0.0::GLfloat)) :: GLsizei
-            glVertexAttribPointer 0 3 GL_FLOAT GL_FALSE (5*floatSize) nullPtr
+            glVertexAttribPointer 0 3 GL_FLOAT GL_FALSE (8*floatSize) nullPtr
             glEnableVertexAttribArray 0
-            -- Texture
-            let threeFloatOffset = castPtr $ plusPtr nullPtr (fromIntegral $ 3*floatSize)
-            glVertexAttribPointer 2 2 GL_FLOAT GL_FALSE (5*floatSize) threeFloatOffset
+            -- Ico: Normals
+            let fiveFloatOffset = castPtr $ plusPtr nullPtr (fromIntegral $ 5*floatSize)
+            glVertexAttribPointer 1 3 GL_FLOAT GL_TRUE (8*floatSize) fiveFloatOffset
+            glEnableVertexAttribArray 1
+            -- Ico: Texture
+            glVertexAttribPointer 2 2 GL_FLOAT GL_FALSE (8*floatSize) threeFloatOffset
             glEnableVertexAttribArray 2
             glBindVertexArray 0
-            -- Ico: color attribute
-            -- let floatSize = (fromIntegral $ sizeOf (0.0::GLfloat)) :: GLsizei
-            -- let ico_color_stride = castPtr $ plusPtr nullPtr (fromIntegral $ 3 * floatSize )
-            -- glVertexAttribPointer 1 3 GL_FLOAT GL_FALSE (6 * floatSize) ico_color_stride -- offset by 3 floats
-            -- glEnableVertexAttribArray 1
-            -- glBindVertexArray 0
-            -- done with Ico
+
+            -- Light : setup vao
+            light_vaoP <- malloc
+            glGenVertexArrays 1 light_vaoP
+            light_vao <- peek light_vaoP
+            glBindVertexArray light_vao
+            -- Light: setup vbo
+            light_vboP <- malloc
+            glGenBuffers 1 light_vboP
+            light_vbo <- peek light_vboP
+            glBindBuffer GL_ARRAY_BUFFER light_vbo
+            glBufferData GL_ARRAY_BUFFER lightVerticesSize (castPtr lightVerticesP) GL_STATIC_DRAW
+            -- Light: attribs
+            glVertexAttribPointer 0 3 GL_FLOAT GL_FALSE (3*floatSize) nullPtr 
+            glEnableVertexAttribArray 0
+            glBindVertexArray 0
+
+            -- Card: setup vao
+            card_vaoP <- malloc
+            glGenVertexArrays 1 card_vaoP
+            card_vao <- peek card_vaoP
+            glBindVertexArray card_vao            
+            -- Card: vbo
+            card_vboP <- malloc
+            glGenBuffers 1 card_vboP
+            card_vbo <- peek card_vboP
+            glBindBuffer GL_ARRAY_BUFFER card_vbo
+            glBufferData GL_ARRAY_BUFFER cardVerticesSize (castPtr cardVerticesP) GL_STATIC_DRAW
+            -- Card: attribs
+            glVertexAttribPointer 0 3 GL_FLOAT GL_FALSE (5*floatSize) nullPtr 
+            glEnableVertexAttribArray 0
+            let threeFloatOffset = castPtr $ plusPtr nullPtr (fromIntegral $ 3*floatSize)
+            glVertexAttribPointer 1 2 GL_FLOAT GL_FALSE (5*floatSize) threeFloatOffset
+            glEnableVertexAttribArray 1           
+            glBindVertexArray 0
 
             -- Uniforms: init names
-            ourColor <- newCString "ourColor"
-            ourTexture0 <- newCString "ourTexture0"
-            ourTexture1 <- newCString "ourTexture1"
+            diceTexture <- newCString "diceTexture"
+            cardTexture <- newCString "cardTexture"
+
+            objectColor <- newCString "objectColor"
+            lightColor <- newCString "lightColor"
             
+            lightPos <- newCString "lightPos"
+            viewPos <- newCString "viewPos"
+
             res <- newCString "res"
             model <- newCString "model"
             view <- newCString "view"
@@ -157,9 +249,10 @@ main = bracketGLFW $ do
             modelP <- malloc
             viewP <- malloc
             projP <- malloc
-
+       
             -- DEBUG VERTS
-            Ico.printVerticies Ico.int_indicies
+            -- Ico.printVerticies Ico.int_indicies
+            let lp = Light.light_position
 
             -- Main loop
             let loop lastFrame oldCamera = do
@@ -180,38 +273,103 @@ main = bracketGLFW $ do
                         -- clear the screen
                         glClearColor 0.85 0.85 0.90 1.0
                         glClear (GL_COLOR_BUFFER_BIT .|. GL_DEPTH_BUFFER_BIT)
-                        -- ICO
-                        glUseProgram ico_shaderProgram
-                        glBindVertexArray ico_vao
-                        -- bind textures using texture units
-                        glActiveTexture GL_TEXTURE0
-                        glBindTexture GL_TEXTURE_2D texture0
-                        our0Loc <- glGetUniformLocation ico_shaderProgram ourTexture0
-                        glUniform1i our0Loc 0
-                        -- UNIFORMS
-                        resLoc <- glGetUniformLocation ico_shaderProgram res
-                        modelLoc <- glGetUniformLocation ico_shaderProgram model
-                        viewLoc <- glGetUniformLocation ico_shaderProgram view
-                        projectionLoc <- glGetUniformLocation ico_shaderProgram projection
-
+                        
                         let viewMat = toViewMatrix camera
                         let screenWidthF = fromIntegral x :: GLfloat
                         let screenHeightF = fromIntegral y :: GLfloat
                         let projMat = perspective 45 (screenWidthF / screenHeightF) 0.1 100.0
+                        let lp = Light.light_position  
+
+                        -- ICO
+                        glUseProgram ico_shaderProgram
+                        glBindVertexArray ico_vao
+                        
+                        -- bind textures using texture units
+                        glActiveTexture GL_TEXTURE0
+                        glBindTexture GL_TEXTURE_2D diceText
+                        diceTextureLocation <- glGetUniformLocation ico_shaderProgram diceTexture
+                        glUniform1i diceTextureLocation 0
+                        
+                        -- UNIFORMS
+                        resLoc <- glGetUniformLocation ico_shaderProgram res
+                        modelLoc <- glGetUniformLocation ico_shaderProgram model
+                        viewLoc <- glGetUniformLocation ico_shaderProgram view
+                        
+                        projectionLoc <- glGetUniformLocation ico_shaderProgram projection
+                        objectColorLoc <- glGetUniformLocation ico_shaderProgram objectColor
+                        lightColorLoc <- glGetUniformLocation ico_shaderProgram lightColor
+                        lightPosLoc <- glGetUniformLocation ico_shaderProgram lightPos
+                        viewPosLoc <- glGetUniformLocation ico_shaderProgram viewPos
 
                         poke viewP (transpose viewMat)
                         poke projP (transpose projMat)
-
                         glUniformMatrix4fv viewLoc 1 GL_FALSE (castPtr viewP)
                         glUniformMatrix4fv projectionLoc 1 GL_FALSE (castPtr projP)
                         forM_ (zip Ico.dice [0..]) $ \(die, i) -> do
                             let modelMat = mkTransformationMat identity die
                             poke modelP (transpose modelMat)
+                            glUniform3f objectColorLoc (1.0::GLfloat) (0.5::GLfloat) (0.31::GLfloat)
+                            glUniform3f lightColorLoc (1.0::GLfloat) (1.0::GLfloat) (1.0::GLfloat)
+                            glUniform3f lightPosLoc (lp^._x) (lp^._y) (lp^._z)
+                            glUniform3f viewPosLoc ((getCameraPos camera)^._x) ((getCameraPos camera)^._y) ((getCameraPos camera)^._z)
                             glUniformMatrix4fv modelLoc 1 GL_FALSE (castPtr modelP)
                             glUniform2f resLoc (screenWidthF) (screenHeightF)
                             glDrawArrays GL_TRIANGLES 0 60
                             -- glDrawElements GL_TRIANGLES 60 GL_UNSIGNED_INT nullPtr
                         glBindVertexArray 0
+                        
+                        -- Light
+                        glUseProgram light_shaderProgram
+                        glBindVertexArray light_vao
+                        
+                         -- UNIFORMS
+                        resLoc <- glGetUniformLocation light_shaderProgram res
+                        modelLoc <- glGetUniformLocation light_shaderProgram model
+                        viewLoc <- glGetUniformLocation light_shaderProgram view
+                        projectionLoc <- glGetUniformLocation light_shaderProgram projection
+                        
+                        poke viewP (transpose viewMat)
+                        poke projP (transpose projMat)
+                        
+                        glUniformMatrix4fv viewLoc 1 GL_FALSE (castPtr viewP)
+                        glUniformMatrix4fv projectionLoc 1 GL_FALSE (castPtr projP)
+                        
+                        forM_ (zip Light.lights [0..]) $ \(light, i) -> do
+                            let modelMat = mkTransformationMat identity light
+                            poke modelP (transpose modelMat)
+                            glUniformMatrix4fv modelLoc 1 GL_FALSE (castPtr modelP)
+                            glDrawArrays GL_TRIANGLES 0 36
+                        glBindVertexArray 0
+                        glBindTexture GL_TEXTURE_2D 0
+                    
+                        -- Card
+                        glUseProgram card_shaderProgram
+                        glBindVertexArray card_vao
+                        -- Bind Card Texture
+                        glActiveTexture GL_TEXTURE0
+                        glBindTexture GL_TEXTURE_2D card_oneTexture
+                        cardTextureLocation <- glGetUniformLocation card_shaderProgram cardTexture
+                        glUniform1i cardTextureLocation 0
+
+                        resLoc <- glGetUniformLocation card_shaderProgram res
+                        modelLoc <- glGetUniformLocation card_shaderProgram model
+                        viewLoc <- glGetUniformLocation card_shaderProgram view
+                        projectionLoc <- glGetUniformLocation card_shaderProgram projection
+                        
+                        poke viewP (transpose viewMat)
+                        poke projP (transpose projMat)
+                        
+                        glUniformMatrix4fv viewLoc 1 GL_FALSE (castPtr viewP)
+                        glUniformMatrix4fv projectionLoc 1 GL_FALSE (castPtr projP)
+                        
+                        forM_ (zip Card.cards [0..]) $ \(card, i) -> do
+                            let modelMat = mkTransformationMat identity card
+                            poke modelP (transpose modelMat)
+                            glUniformMatrix4fv modelLoc 1 GL_FALSE (castPtr modelP)
+                            glDrawArrays GL_TRIANGLES 0 36
+                        glBindVertexArray 0  
+                        glBindTexture GL_TEXTURE_2D 0 
+                   
                         -- swap buffers and go again
                         GLFW.swapBuffers window
                         loop timeValue camera

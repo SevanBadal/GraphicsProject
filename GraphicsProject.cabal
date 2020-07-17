@@ -58,10 +58,14 @@ library
                       ,Camera
                       ,Icosahedron
                       ,IcoShader
+                      ,Light
+                      ,LightShader
                       ,Keys
                       ,Mouse
                       ,ShaderLink
-
+                      ,Card
+                      ,CardShader
+                      
   -- Modules included in this library but not exported.
   -- other-modules:
 
@@ -77,9 +81,8 @@ library
                       ,linear
                       ,containers
                       ,JuicyPixels
-
   -- Directories containing source files.
-  hs-source-dirs:      lib
+  hs-source-dirs:      lib lib/Shaders lib/GLFWCallbacks lib/Objects
 
   -- Base language which the package is written in.
   default-language:    Haskell2010
@@ -105,6 +108,8 @@ executable GraphicsProject
                       ,containers
                       ,JuicyPixels
                       ,GraphicsProject
+                      ,lens
+                      
 
   -- Directories containing source files.
   hs-source-dirs:      app
