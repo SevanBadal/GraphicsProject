@@ -11,6 +11,7 @@ import IcoShader
 import Mouse
 import Camera
 import Keys
+import Texture
 import Control.Lens
 import qualified Light as Light
 import qualified Card as Card
@@ -132,7 +133,7 @@ main = bracketGLFW $ do
             glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER GL_NEAREST_MIPMAP_NEAREST
             glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_S GL_CLAMP_TO_EDGE
             glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_T GL_CLAMP_TO_EDGE
-            eErrDI1 <- readImage "app/card_image.png"
+            eErrDI1 <- readImage "app/card_gloss.png"
             dyImage1 <- case eErrDI1 of
                 Left e -> do
                     putStrLn e
@@ -148,6 +149,31 @@ main = bracketGLFW $ do
             glGenerateMipmap GL_TEXTURE_2D
             glBindTexture GL_TEXTURE_2D 0
 
+--          Card Two Texture
+            card_twoP <- malloc
+            glGenTextures 1 card_twoP
+            card_twoTexture <- peek card_twoP
+            glBindTexture GL_TEXTURE_2D card_twoTexture
+            glDisable GL_BLEND
+            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER GL_NEAREST_MIPMAP_NEAREST
+            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER GL_NEAREST_MIPMAP_NEAREST
+            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_S GL_CLAMP_TO_EDGE
+            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_T GL_CLAMP_TO_EDGE
+            eErrDI2 <- readImage "app/card_image.png"
+            dyImage2 <- case eErrDI2 of
+                Left e -> do
+                    putStrLn e
+                    return $ ImageRGBA8 $ generateImage (\x y ->
+                        let x' = fromIntegral x in (PixelRGBA8 x' x' x' x')) 312 445
+                Right di -> return di
+            let ipixelrgb82 = convertRGBA8 dyImage2
+                iWidth2 = fromIntegral $ imageWidth ipixelrgb82
+                iHeight2 = fromIntegral $ imageHeight ipixelrgb82
+                iData2 = imageData ipixelrgb82
+            VS.unsafeWith iData2 $ \dataP ->
+                glTexImage2D GL_TEXTURE_2D 0 GL_RGBA iWidth2 iHeight2 0 GL_RGBA GL_UNSIGNED_BYTE (castPtr dataP)
+            glGenerateMipmap GL_TEXTURE_2D
+            glBindTexture GL_TEXTURE_2D 0
 ------------------------------------------------------------------------------------------------------
 --          End Texture Setup
 ------------------------------------------------------------------------------------------------------
@@ -231,11 +257,15 @@ main = bracketGLFW $ do
             glBindBuffer GL_ARRAY_BUFFER card_vbo
             glBufferData GL_ARRAY_BUFFER cardVerticesSize (castPtr cardVerticesP) GL_STATIC_DRAW
 --          Card: Attributes
-            glVertexAttribPointer 0 3 GL_FLOAT GL_FALSE (5*floatSize) nullPtr 
+            glVertexAttribPointer 0 3 GL_FLOAT GL_FALSE (8*floatSize) nullPtr 
             glEnableVertexAttribArray 0
             let threeFloatOffset = castPtr $ plusPtr nullPtr (fromIntegral $ 3*floatSize)
-            glVertexAttribPointer 1 2 GL_FLOAT GL_FALSE (5*floatSize) threeFloatOffset
-            glEnableVertexAttribArray 1           
+            glVertexAttribPointer 1 2 GL_FLOAT GL_FALSE (8*floatSize) threeFloatOffset
+            glEnableVertexAttribArray 1
+--          Card: Normals
+            let fiveFloatOffset = castPtr $ plusPtr nullPtr (fromIntegral $ 5*floatSize)
+            glVertexAttribPointer 2 3 GL_FLOAT GL_FALSE (8*floatSize) fiveFloatOffset
+            glEnableVertexAttribArray 2        
             glBindVertexArray 0
 ------------------------------------------------------------------------------------------------------
 --          Declare Uniforms
@@ -303,8 +333,8 @@ main = bracketGLFW $ do
                         resLoc <- glGetUniformLocation ico_shaderProgram res
                         modelLoc <- glGetUniformLocation ico_shaderProgram model
                         viewLoc <- glGetUniformLocation ico_shaderProgram view
-                        
                         projectionLoc <- glGetUniformLocation ico_shaderProgram projection
+
                         objectColorLoc <- glGetUniformLocation ico_shaderProgram objectColor
                         lightColorLoc <- glGetUniformLocation ico_shaderProgram lightColor
                         lightPosLoc <- glGetUniformLocation ico_shaderProgram lightPos
@@ -315,7 +345,8 @@ main = bracketGLFW $ do
                         glUniformMatrix4fv viewLoc 1 GL_FALSE (castPtr viewP)
                         glUniformMatrix4fv projectionLoc 1 GL_FALSE (castPtr projP)
                         forM_ (zip Ico.dice [0..]) $ \(die, i) -> do
-                            let modelMat = mkTransformationMat identity die
+                            let modelMat = mkTransformation (axisAngle (V3 (0.5::GLfloat) 1 0) timeValue) die
+                            -- let modelMat = mkTransformationMat identity die
                             poke modelP (transpose modelMat)
                             glUniform3f objectColorLoc (1.0::GLfloat) (0.5::GLfloat) (0.31::GLfloat)
                             glUniform3f lightColorLoc (1.0::GLfloat) (1.0::GLfloat) (1.0::GLfloat)
@@ -369,17 +400,44 @@ main = bracketGLFW $ do
                         viewLoc <- glGetUniformLocation card_shaderProgram view
                         projectionLoc <- glGetUniformLocation card_shaderProgram projection
                         
+                        objectColorLoc <- glGetUniformLocation card_shaderProgram objectColor
+                        lightColorLoc <- glGetUniformLocation card_shaderProgram lightColor
+                        lightPosLoc <- glGetUniformLocation card_shaderProgram lightPos
+                        viewPosLoc <- glGetUniformLocation card_shaderProgram viewPos
+
                         poke viewP (transpose viewMat)
                         poke projP (transpose projMat)
                         
                         glUniformMatrix4fv viewLoc 1 GL_FALSE (castPtr viewP)
                         glUniformMatrix4fv projectionLoc 1 GL_FALSE (castPtr projP)
+ 
+                        let card = Card.cards!!0
+                        let modelMat = mkTransformation (axisAngle (V3 (0::GLfloat) 1 0) timeValue) card
+                        -- let modelMat = mkTransformationMat identity card
+                        glUniform3f objectColorLoc (0.0::GLfloat) (0.0::GLfloat) (0.0::GLfloat)
+                        glUniform3f lightColorLoc (1.0::GLfloat) (1.0::GLfloat) (1.0::GLfloat)
+                        glUniform3f lightPosLoc (lp^._x) (lp^._y) (lp^._z)
+                        glUniform3f viewPosLoc ((getCameraPos camera)^._x) ((getCameraPos camera)^._y) ((getCameraPos camera)^._z)
+                        poke modelP (transpose modelMat)
+                        glUniformMatrix4fv modelLoc 1 GL_FALSE (castPtr modelP)
+                        glDrawArrays GL_TRIANGLES 0 36
+                        glBindTexture GL_TEXTURE_2D 0 
+                        -- draw card two
+                        glBindTexture GL_TEXTURE_2D card_twoTexture
+                        glActiveTexture GL_TEXTURE0
+                        cardTextureLocation <- glGetUniformLocation card_shaderProgram cardTexture
+                        glUniform1i cardTextureLocation 0
+                        let card = Card.cards!!1
+                        let modelMat = mkTransformation (axisAngle (V3 (0::GLfloat) (-1) (0)) timeValue) card
+                        -- let modelMat = mkTransformationMat identity card
+                        glUniform3f objectColorLoc (1.0::GLfloat) (1.0::GLfloat) (1.0::GLfloat)
+                        glUniform3f lightColorLoc (1.0::GLfloat) (1.0::GLfloat) (1.0::GLfloat)
+                        glUniform3f lightPosLoc (lp^._x) (lp^._y) (lp^._z)
+                        glUniform3f viewPosLoc ((getCameraPos camera)^._x) ((getCameraPos camera)^._y) ((getCameraPos camera)^._z)
+                        poke modelP (transpose modelMat)
+                        glUniformMatrix4fv modelLoc 1 GL_FALSE (castPtr modelP)
+                        glDrawArrays GL_TRIANGLES 0 36
                         
-                        forM_ (zip Card.cards [0..]) $ \(card, i) -> do
-                            let modelMat = mkTransformationMat identity card
-                            poke modelP (transpose modelMat)
-                            glUniformMatrix4fv modelLoc 1 GL_FALSE (castPtr modelP)
-                            glDrawArrays GL_TRIANGLES 0 36
                         glBindVertexArray 0  
                         glBindTexture GL_TEXTURE_2D 0 
 ------------------------------------------------------------------------------------------------------

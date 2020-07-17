@@ -65,7 +65,7 @@ int_verticies = [
 
 -- Batch object to world transform
 dice :: [V3 GLfloat]
-dice = [V3 (0) 0 (-5)]
+dice = [V3 (0) 0 (-3)]
 
 slice :: Int -> Int -> [GLfloat] -> [GLfloat]
 slice from to xs = take (to - from + 1) (drop from xs)
