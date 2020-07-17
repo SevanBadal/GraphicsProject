@@ -91,9 +91,10 @@ main = bracketGLFW $ do
             card_shaderProgram <- case card_eErrP of
                 Left e -> putStrLn e >> return 0
                 Right p -> return p
-
-            glActiveTexture GL_TEXTURE0
-            -- ICO texture
+------------------------------------------------------------------------------------------------------
+--          Setup Textures
+------------------------------------------------------------------------------------------------------
+--          ICO texture
             dice_textureP <- malloc
             glGenTextures 1 dice_textureP
             diceText <- peek dice_textureP
@@ -101,7 +102,7 @@ main = bracketGLFW $ do
             glEnable GL_BLEND
             glBlendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
             glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER GL_LINEAR
-            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER GL_LINEAR
+            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER GL_LINEAR_MIPMAP_LINEAR
             glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_S GL_REPEAT
             glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_T GL_REPEAT
             -- wrapping and filtering params would go here.
@@ -120,9 +121,8 @@ main = bracketGLFW $ do
                 glTexImage2D GL_TEXTURE_2D 0 GL_RGBA iWidth0 iHeight0 0 GL_RGBA GL_UNSIGNED_BYTE (castPtr dataP)
             glGenerateMipmap GL_TEXTURE_2D
             glBindTexture GL_TEXTURE_2D 0
-
-            glActiveTexture GL_TEXTURE1
-            -- ready the card texture
+------------------------------------------------------------------------------------------------------
+--          Card texture
             card_oneP <- malloc
             glGenTextures 1 card_oneP
             card_oneTexture <- peek card_oneP
@@ -132,7 +132,7 @@ main = bracketGLFW $ do
             glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER GL_NEAREST_MIPMAP_NEAREST
             glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_S GL_CLAMP_TO_EDGE
             glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_T GL_CLAMP_TO_EDGE
-            eErrDI1 <- readImage "app/card_one.jpg"
+            eErrDI1 <- readImage "app/card_image.png"
             dyImage1 <- case eErrDI1 of
                 Left e -> do
                     putStrLn e
@@ -144,10 +144,15 @@ main = bracketGLFW $ do
                 iHeight1 = fromIntegral $ imageHeight ipixelrgb81
                 iData1 = imageData ipixelrgb81
             VS.unsafeWith iData1 $ \dataP ->
-                glTexImage2D GL_TEXTURE_2D 0 GL_RGBA iWidth0 iHeight0 0 GL_RGBA GL_UNSIGNED_BYTE (castPtr dataP)
+                glTexImage2D GL_TEXTURE_2D 0 GL_RGBA iWidth1 iHeight1 0 GL_RGBA GL_UNSIGNED_BYTE (castPtr dataP)
             glGenerateMipmap GL_TEXTURE_2D
             glBindTexture GL_TEXTURE_2D 0
 
+------------------------------------------------------------------------------------------------------
+--          End Texture Setup
+------------------------------------------------------------------------------------------------------
+--          Setup Object Verts
+------------------------------------------------------------------------------------------------------
             let floatSize = (fromIntegral $ sizeOf (0.0::GLfloat)) :: GLsizei
             let threeFloatOffset = castPtr $ plusPtr nullPtr (fromIntegral $ 3*floatSize)
 
@@ -165,13 +170,15 @@ main = bracketGLFW $ do
             -- Setup Light verticies
             let lightVerticesSize = fromIntegral $ sizeOf (0.0 :: GLfloat) * (length Light.verticies)
             lightVerticesP <- newArray Light.verticies
-
-            -- Ico: setup vao
+------------------------------------------------------------------------------------------------------
+--          Setup Object VAOs and VBOs
+------------------------------------------------------------------------------------------------------
+--          Dice: VAO
             ico_vaoP <- malloc
             glGenVertexArrays 1 ico_vaoP
             ico_vao <- peek ico_vaoP
             glBindVertexArray ico_vao
-            -- Ico: vbo
+--          Dice: VBO
             ico_vboP <- malloc
             glGenBuffers 1 ico_vboP
             ico_vbo <- peek ico_vboP
@@ -183,53 +190,56 @@ main = bracketGLFW $ do
             -- ico_ebo <- peek ico_eboP
             -- glBindBuffer GL_ELEMENT_ARRAY_BUFFER ico_ebo
             -- glBufferData GL_ELEMENT_ARRAY_BUFFER ico_indicesSize (castPtr ico_indicesP) GL_STATIC_DRAW
-            -- Ico: attrib pointer info
+
+--          Dice: Attributes
             glVertexAttribPointer 0 3 GL_FLOAT GL_FALSE (8*floatSize) nullPtr
             glEnableVertexAttribArray 0
-            -- Ico: Normals
+--          Dice: Normals
             let fiveFloatOffset = castPtr $ plusPtr nullPtr (fromIntegral $ 5*floatSize)
             glVertexAttribPointer 1 3 GL_FLOAT GL_TRUE (8*floatSize) fiveFloatOffset
             glEnableVertexAttribArray 1
-            -- Ico: Texture
+--          Dice: Texture
             glVertexAttribPointer 2 2 GL_FLOAT GL_FALSE (8*floatSize) threeFloatOffset
             glEnableVertexAttribArray 2
             glBindVertexArray 0
 
-            -- Light : setup vao
+--          Light: VAO
             light_vaoP <- malloc
             glGenVertexArrays 1 light_vaoP
             light_vao <- peek light_vaoP
             glBindVertexArray light_vao
-            -- Light: setup vbo
+--          Light: VBO
             light_vboP <- malloc
             glGenBuffers 1 light_vboP
             light_vbo <- peek light_vboP
             glBindBuffer GL_ARRAY_BUFFER light_vbo
             glBufferData GL_ARRAY_BUFFER lightVerticesSize (castPtr lightVerticesP) GL_STATIC_DRAW
-            -- Light: attribs
+--          Light: Attributes
             glVertexAttribPointer 0 3 GL_FLOAT GL_FALSE (3*floatSize) nullPtr 
             glEnableVertexAttribArray 0
             glBindVertexArray 0
 
-            -- Card: setup vao
+--          Card: VAO
             card_vaoP <- malloc
             glGenVertexArrays 1 card_vaoP
             card_vao <- peek card_vaoP
             glBindVertexArray card_vao            
-            -- Card: vbo
+--          Card: VBO
             card_vboP <- malloc
             glGenBuffers 1 card_vboP
             card_vbo <- peek card_vboP
             glBindBuffer GL_ARRAY_BUFFER card_vbo
             glBufferData GL_ARRAY_BUFFER cardVerticesSize (castPtr cardVerticesP) GL_STATIC_DRAW
-            -- Card: attribs
+--          Card: Attributes
             glVertexAttribPointer 0 3 GL_FLOAT GL_FALSE (5*floatSize) nullPtr 
             glEnableVertexAttribArray 0
             let threeFloatOffset = castPtr $ plusPtr nullPtr (fromIntegral $ 3*floatSize)
             glVertexAttribPointer 1 2 GL_FLOAT GL_FALSE (5*floatSize) threeFloatOffset
             glEnableVertexAttribArray 1           
             glBindVertexArray 0
-
+------------------------------------------------------------------------------------------------------
+--          Declare Uniforms
+------------------------------------------------------------------------------------------------------
             -- Uniforms: init names
             diceTexture <- newCString "diceTexture"
             cardTexture <- newCString "cardTexture"
@@ -252,34 +262,33 @@ main = bracketGLFW $ do
        
             -- DEBUG VERTS
             -- Ico.printVerticies Ico.int_indicies
-            let lp = Light.light_position
-
+------------------------------------------------------------------------------------------------------
+--          Enter Render Loop
+------------------------------------------------------------------------------------------------------
             -- Main loop
             let loop lastFrame oldCamera = do
                     shouldContinue <- not <$> GLFW.windowShouldClose window
                     when shouldContinue $ do
-                        -- event poll
                         GLFW.pollEvents
-                        -- check time
                         timeValue <- maybe 0 realToFrac <$> GLFW.getTime
                         let deltaTime = timeValue - lastFrame
                         let cameraSpeed = 5 * deltaTime
-                        -- read and use keys
                         keysDown <- readIORef keyRef
                         let cameraTemp = updateCamera keysDown cameraSpeed oldCamera
-                        -- read and use mouse
                         mouseInfo <- readIORef mouseRef
                         let camera = cameraTemp{cameraFront = frontVec mouseInfo}
                         -- clear the screen
                         glClearColor 0.85 0.85 0.90 1.0
                         glClear (GL_COLOR_BUFFER_BIT .|. GL_DEPTH_BUFFER_BIT)
-                        
+                        let lp = Light.light_position
                         let viewMat = toViewMatrix camera
                         let screenWidthF = fromIntegral x :: GLfloat
                         let screenHeightF = fromIntegral y :: GLfloat
                         let projMat = perspective 45 (screenWidthF / screenHeightF) 0.1 100.0
                         let lp = Light.light_position  
-
+------------------------------------------------------------------------------------------------------
+--                      Draw Dice
+------------------------------------------------------------------------------------------------------
                         -- ICO
                         glUseProgram ico_shaderProgram
                         glBindVertexArray ico_vao
@@ -317,7 +326,9 @@ main = bracketGLFW $ do
                             glDrawArrays GL_TRIANGLES 0 60
                             -- glDrawElements GL_TRIANGLES 60 GL_UNSIGNED_INT nullPtr
                         glBindVertexArray 0
-                        
+------------------------------------------------------------------------------------------------------
+--                      Draw Light Source Object
+------------------------------------------------------------------------------------------------------
                         -- Light
                         glUseProgram light_shaderProgram
                         glBindVertexArray light_vao
@@ -341,13 +352,15 @@ main = bracketGLFW $ do
                             glDrawArrays GL_TRIANGLES 0 36
                         glBindVertexArray 0
                         glBindTexture GL_TEXTURE_2D 0
-                    
+------------------------------------------------------------------------------------------------------
+--                      Draw Cards
+------------------------------------------------------------------------------------------------------
                         -- Card
                         glUseProgram card_shaderProgram
                         glBindVertexArray card_vao
                         -- Bind Card Texture
-                        glActiveTexture GL_TEXTURE0
                         glBindTexture GL_TEXTURE_2D card_oneTexture
+                        glActiveTexture GL_TEXTURE0
                         cardTextureLocation <- glGetUniformLocation card_shaderProgram cardTexture
                         glUniform1i cardTextureLocation 0
 
@@ -369,8 +382,9 @@ main = bracketGLFW $ do
                             glDrawArrays GL_TRIANGLES 0 36
                         glBindVertexArray 0  
                         glBindTexture GL_TEXTURE_2D 0 
-                   
-                        -- swap buffers and go again
+------------------------------------------------------------------------------------------------------
+--                      Swap Buffers and Repeat
+------------------------------------------------------------------------------------------------------
                         GLFW.swapBuffers window
                         loop timeValue camera
             loop 0.0 (Camera (V3 0 0 3) (V3 0 0 (-1)) (V3 0 1 0))

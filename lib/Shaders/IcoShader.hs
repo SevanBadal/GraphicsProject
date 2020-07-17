@@ -19,7 +19,7 @@ icoVertexShaderSource = unlines [
     ,"out vec2 TexCoord;"
     ,"void main()"
     ,"{"
-    ,"    gl_Position =  projection * view * model * vec4(position, 1.0);"
+    ,"    gl_Position =  projection * view * model * vec4(position / 3.0f, 1.0);"
     ,"    u_resolution = res;"
     ,"    ourTri = gl_Position;"
     ,"    TexCoord = vec2(texCoord.x, 1.0f - texCoord.y);"
