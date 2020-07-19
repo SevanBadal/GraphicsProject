@@ -100,78 +100,30 @@ main = bracketGLFW $ do
             glGenTextures 1 dice_textureP
             diceText <- peek dice_textureP
             glBindTexture GL_TEXTURE_2D diceText
-            glEnable GL_BLEND
-            glBlendFunc GL_SRC_ALPHA GL_ONE_MINUS_SRC_ALPHA
-            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER GL_LINEAR
-            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER GL_LINEAR_MIPMAP_LINEAR
-            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_S GL_REPEAT
-            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_T GL_REPEAT
-            -- wrapping and filtering params would go here.
-            eErrDI0 <- readImage "app/numbers.png"
-            dyImage0 <- case eErrDI0 of
-                Left e -> do
-                    putStrLn e
-                    return $ ImageRGBA8 $ generateImage (\x y ->
-                        let x' = fromIntegral x in (PixelRGBA8 x' x' x' x')) 500 400
-                Right di -> return di
-            let ipixelrgba80 = convertRGBA8 dyImage0
-                iWidth0 = fromIntegral $ imageWidth ipixelrgba80
-                iHeight0 = fromIntegral $ imageHeight ipixelrgba80
-                iData0 = imageData ipixelrgba80
-            VS.unsafeWith iData0 $ \dataP ->
-                glTexImage2D GL_TEXTURE_2D 0 GL_RGBA iWidth0 iHeight0 0 GL_RGBA GL_UNSIGNED_BYTE (castPtr dataP)
+            numberTextureImage <- loadImageTexture "app/numbers.png"
+            VS.unsafeWith (imageData numberTextureImage) $ \dataP ->
+                glTexImage2D GL_TEXTURE_2D 0 GL_RGBA (fromIntegral $ imageWidth numberTextureImage) (fromIntegral $ imageHeight numberTextureImage) 0 GL_RGBA GL_UNSIGNED_BYTE (castPtr dataP)
             glGenerateMipmap GL_TEXTURE_2D
             glBindTexture GL_TEXTURE_2D 0
 ------------------------------------------------------------------------------------------------------
---          Card texture
+----------- Card One texture
             card_oneP <- malloc
             glGenTextures 1 card_oneP
             card_oneTexture <- peek card_oneP
             glBindTexture GL_TEXTURE_2D card_oneTexture
-            glDisable GL_BLEND
-            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER GL_NEAREST_MIPMAP_NEAREST
-            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER GL_NEAREST_MIPMAP_NEAREST
-            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_S GL_CLAMP_TO_EDGE
-            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_T GL_CLAMP_TO_EDGE
-            eErrDI1 <- readImage "app/card_gloss.png"
-            dyImage1 <- case eErrDI1 of
-                Left e -> do
-                    putStrLn e
-                    return $ ImageRGBA8 $ generateImage (\x y ->
-                        let x' = fromIntegral x in (PixelRGBA8 x' x' x' x')) 312 445
-                Right di -> return di
-            let ipixelrgb81 = convertRGBA8 dyImage1
-                iWidth1 = fromIntegral $ imageWidth ipixelrgb81
-                iHeight1 = fromIntegral $ imageHeight ipixelrgb81
-                iData1 = imageData ipixelrgb81
-            VS.unsafeWith iData1 $ \dataP ->
-                glTexImage2D GL_TEXTURE_2D 0 GL_RGBA iWidth1 iHeight1 0 GL_RGBA GL_UNSIGNED_BYTE (castPtr dataP)
+            cardOneTextureImage <- loadImageTexture "app/card_gloss.png"
+            VS.unsafeWith (imageData cardOneTextureImage) $ \dataP ->
+                glTexImage2D GL_TEXTURE_2D 0 GL_RGBA (fromIntegral $ imageWidth cardOneTextureImage) (fromIntegral $ imageHeight cardOneTextureImage) 0 GL_RGBA GL_UNSIGNED_BYTE (castPtr dataP)
             glGenerateMipmap GL_TEXTURE_2D
             glBindTexture GL_TEXTURE_2D 0
-
---          Card Two Texture
+----------- Card Two Texture
             card_twoP <- malloc
             glGenTextures 1 card_twoP
             card_twoTexture <- peek card_twoP
             glBindTexture GL_TEXTURE_2D card_twoTexture
-            glDisable GL_BLEND
-            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MAG_FILTER GL_NEAREST_MIPMAP_NEAREST
-            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_MIN_FILTER GL_NEAREST_MIPMAP_NEAREST
-            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_S GL_CLAMP_TO_EDGE
-            glTexParameteri GL_TEXTURE_2D GL_TEXTURE_WRAP_T GL_CLAMP_TO_EDGE
-            eErrDI2 <- readImage "app/card_image.png"
-            dyImage2 <- case eErrDI2 of
-                Left e -> do
-                    putStrLn e
-                    return $ ImageRGBA8 $ generateImage (\x y ->
-                        let x' = fromIntegral x in (PixelRGBA8 x' x' x' x')) 312 445
-                Right di -> return di
-            let ipixelrgb82 = convertRGBA8 dyImage2
-                iWidth2 = fromIntegral $ imageWidth ipixelrgb82
-                iHeight2 = fromIntegral $ imageHeight ipixelrgb82
-                iData2 = imageData ipixelrgb82
-            VS.unsafeWith iData2 $ \dataP ->
-                glTexImage2D GL_TEXTURE_2D 0 GL_RGBA iWidth2 iHeight2 0 GL_RGBA GL_UNSIGNED_BYTE (castPtr dataP)
+            cardTwoTextureImage <- loadImageTexture "app/card_image.png"
+            VS.unsafeWith (imageData cardTwoTextureImage) $ \dataP ->
+                glTexImage2D GL_TEXTURE_2D 0 GL_RGBA (fromIntegral $ imageWidth cardTwoTextureImage) (fromIntegral $ imageHeight cardTwoTextureImage) 0 GL_RGBA GL_UNSIGNED_BYTE (castPtr dataP)
             glGenerateMipmap GL_TEXTURE_2D
             glBindTexture GL_TEXTURE_2D 0
 ------------------------------------------------------------------------------------------------------
@@ -345,7 +297,7 @@ main = bracketGLFW $ do
                         glUniformMatrix4fv viewLoc 1 GL_FALSE (castPtr viewP)
                         glUniformMatrix4fv projectionLoc 1 GL_FALSE (castPtr projP)
                         forM_ (zip Ico.dice [0..]) $ \(die, i) -> do
-                            let modelMat = mkTransformation (axisAngle (V3 (0.5::GLfloat) 1 0) timeValue) die
+                            let modelMat = mkTransformation (axisAngle (V3 (1.0::GLfloat) 0 0) (timeValue)) die
                             -- let modelMat = mkTransformationMat identity die
                             poke modelP (transpose modelMat)
                             glUniform3f objectColorLoc (1.0::GLfloat) (0.5::GLfloat) (0.31::GLfloat)
@@ -412,7 +364,7 @@ main = bracketGLFW $ do
                         glUniformMatrix4fv projectionLoc 1 GL_FALSE (castPtr projP)
  
                         let card = Card.cards!!0
-                        let modelMat = mkTransformation (axisAngle (V3 (0::GLfloat) 1 0) timeValue) card
+                        let modelMat = mkTransformation (axisAngle (V3 (0::GLfloat) 1 0) (timeValue * 0.4)) card
                         -- let modelMat = mkTransformationMat identity card
                         glUniform3f objectColorLoc (0.0::GLfloat) (0.0::GLfloat) (0.0::GLfloat)
                         glUniform3f lightColorLoc (1.0::GLfloat) (1.0::GLfloat) (1.0::GLfloat)
@@ -428,7 +380,7 @@ main = bracketGLFW $ do
                         cardTextureLocation <- glGetUniformLocation card_shaderProgram cardTexture
                         glUniform1i cardTextureLocation 0
                         let card = Card.cards!!1
-                        let modelMat = mkTransformation (axisAngle (V3 (0::GLfloat) (-1) (0)) timeValue) card
+                        let modelMat = mkTransformation (axisAngle (V3 (0::GLfloat) (-1) (0)) (timeValue * 0.35)) card
                         -- let modelMat = mkTransformationMat identity card
                         glUniform3f objectColorLoc (1.0::GLfloat) (1.0::GLfloat) (1.0::GLfloat)
                         glUniform3f lightColorLoc (1.0::GLfloat) (1.0::GLfloat) (1.0::GLfloat)
