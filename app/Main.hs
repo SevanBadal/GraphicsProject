@@ -297,17 +297,17 @@ main = bracketGLFW $ do
                         glUniformMatrix4fv viewLoc 1 GL_FALSE (castPtr viewP)
                         glUniformMatrix4fv projectionLoc 1 GL_FALSE (castPtr projP)
                         forM_ (zip Ico.dice [0..]) $ \(die, i) -> do
-                            let modelMat = mkTransformation (axisAngle (V3 (1.0::GLfloat) 0 0) (timeValue)) die
+                            let angle = 100 * i
+                            let modelMat = mkTransformation (axisAngle (V3 (1.0::GLfloat) 0.5 0.5) ((sin timeValue))) die
                             -- let modelMat = mkTransformationMat identity die
                             poke modelP (transpose modelMat)
-                            glUniform3f objectColorLoc (1.0::GLfloat) (0.5::GLfloat) (0.31::GLfloat)
+                            glUniform3f objectColorLoc (0.3::GLfloat) (0.5::GLfloat) (0.6::GLfloat)
                             glUniform3f lightColorLoc (1.0::GLfloat) (1.0::GLfloat) (1.0::GLfloat)
                             glUniform3f lightPosLoc (lp^._x) (lp^._y) (lp^._z)
                             glUniform3f viewPosLoc ((getCameraPos camera)^._x) ((getCameraPos camera)^._y) ((getCameraPos camera)^._z)
                             glUniformMatrix4fv modelLoc 1 GL_FALSE (castPtr modelP)
                             glUniform2f resLoc (screenWidthF) (screenHeightF)
                             glDrawArrays GL_TRIANGLES 0 60
-                            -- glDrawElements GL_TRIANGLES 60 GL_UNSIGNED_INT nullPtr
                         glBindVertexArray 0
 ------------------------------------------------------------------------------------------------------
 --                      Draw Light Source Object

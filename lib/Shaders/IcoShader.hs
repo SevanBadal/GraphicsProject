@@ -79,8 +79,8 @@ icoFragmentShaderSource = unlines [
     ,"    vec3 reflectDir = reflect(-lightDir, normalize(Normal));"
     ,"    float spec = pow(max(dot(viewDir, reflectDir),0.0),30);"
     ,"    vec3 specular = specularStrength * spec * lightColor;"  
-    ,"    vec3 result = (ambient + diffuse + specular) * objectColor;"
+    ,"    vec3 result = (ambient + diffuse + specular) * (texture(ourTexture1,TexCoord).xyz + objectColor);"
     ,"    // color = texture(ourTexture1,TexCoord);"
     ,"    // color = vec4(result, 1.0f);"
-    ,"    color = vec4(result, 1.0f) + texture(ourTexture1,TexCoord);"
+    ,"    color = vec4(result, 1.0f);"
     ,"}"]
