@@ -62,7 +62,7 @@ library
                       ,LightShader
                       ,Keys
                       ,Mouse
-                      ,ShaderLink
+                      ,ShaderUtility
                       ,Card
                       ,CardShader
                       ,Texture

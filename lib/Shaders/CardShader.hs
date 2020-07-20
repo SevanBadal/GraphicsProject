@@ -55,7 +55,7 @@ cardFragmentShaderSource = unlines [
     ,"uniform sampler2D cardTexture;"
     ,"void main()"
     ,"{"
-    ,"    float ambientStrength = 0.4f;"
+    ,"    float ambientStrength = 0.1f;"
     ,"    vec3 ambient = lightColor * ambientStrength;"
     ,"    // diffuse"
     ,"    vec3 lightDir = normalize(lightPos - FragPos);"

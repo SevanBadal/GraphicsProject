@@ -75,7 +75,7 @@ icoFragmentShaderSource = unlines [
     ,"    float diff = max(dot(normalize(Normal), lightDir),0.0);"
     ,"    vec3 diffuse = diff * lightColor;"
     ,"    // specular"
-    ,"    float specularStrength = 3.0f;"
+    ,"    float specularStrength = 10.0f;"
     ,"    vec3 viewDir = normalize(viewPos - FragPos);"
     ,"    vec3 reflectDir = reflect(-lightDir, normalize(Normal));"
     ,"    float spec = pow(max(dot(viewDir, reflectDir),0.0),30);"
