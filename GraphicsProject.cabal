@@ -54,14 +54,18 @@ extra-source-files:  CHANGELOG.md
 
 library
   -- Modules exported by the library.
-  exposed-modules:     MyLib
-                      ,Camera
+  exposed-modules:     Camera
                       ,Icosahedron
                       ,IcoShader
+                      ,Light
+                      ,LightShader
                       ,Keys
                       ,Mouse
-                      ,ShaderLink
-
+                      ,ShaderUtility
+                      ,Card
+                      ,CardShader
+                      ,Texture
+                      
   -- Modules included in this library but not exported.
   -- other-modules:
 
@@ -73,13 +77,11 @@ library
                       ,GLFW-b
                       ,gl
                       ,vector
-                      ,mtl
                       ,linear
                       ,containers
                       ,JuicyPixels
-
   -- Directories containing source files.
-  hs-source-dirs:      lib
+  hs-source-dirs:      lib lib/Shaders lib/GLFWCallbacks lib/Objects lib/Texture
 
   -- Base language which the package is written in.
   default-language:    Haskell2010
@@ -100,11 +102,12 @@ executable GraphicsProject
                       ,GLFW-b
                       ,gl
                       ,vector
-                      ,mtl
                       ,linear
                       ,containers
                       ,JuicyPixels
                       ,GraphicsProject
+                      ,lens
+                      
 
   -- Directories containing source files.
   hs-source-dirs:      app

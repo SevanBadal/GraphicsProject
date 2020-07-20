@@ -23,3 +23,6 @@ updateCamera keySet speed cam@(Camera pos front up) = let
             _ -> vec
             ) (V3 0 0 0) keySet
     in cam {cameraPos = pos ^+^ (speed *^ normalize moveVector)}
+
+getCameraPos :: Camera -> V3 GLfloat
+getCameraPos (Camera pos _ _) = pos

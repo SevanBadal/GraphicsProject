@@ -1,5 +1,5 @@
 module Keys where
-
+-- https://lokathor.gitbooks.io/using-haskell/content/opengl/camera.html
 import qualified Graphics.UI.GLFW as GLFW
 import Data.Set (Set)
 import qualified Data.Set as S

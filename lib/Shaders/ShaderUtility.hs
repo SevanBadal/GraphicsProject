@@ -1,4 +1,4 @@
-module ShaderLink where
+module ShaderUtility where
     
 import Graphics.GL.Core33
 import Graphics.GL.Types
@@ -107,3 +107,11 @@ programFromSources vertexSource fragmentSource = do
                     glDeleteShader vertShader
                     glDeleteShader fragShader
                     return $ eitherProgram
+
+getCompiledShader :: String -> String -> IO (GLuint)
+getCompiledShader vert frag = do
+    errorP <- programFromSources vert frag
+    shaderProgram <- case errorP of
+        Left e -> putStrLn e >> return 0
+        Right p -> return p
+    return shaderProgram
