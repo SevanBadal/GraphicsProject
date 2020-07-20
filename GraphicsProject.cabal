@@ -54,8 +54,7 @@ extra-source-files:  CHANGELOG.md
 
 library
   -- Modules exported by the library.
-  exposed-modules:     MyLib
-                      ,Camera
+  exposed-modules:     Camera
                       ,Icosahedron
                       ,IcoShader
                       ,Light
@@ -78,7 +77,6 @@ library
                       ,GLFW-b
                       ,gl
                       ,vector
-                      ,mtl
                       ,linear
                       ,containers
                       ,JuicyPixels
@@ -104,7 +102,6 @@ executable GraphicsProject
                       ,GLFW-b
                       ,gl
                       ,vector
-                      ,mtl
                       ,linear
                       ,containers
                       ,JuicyPixels

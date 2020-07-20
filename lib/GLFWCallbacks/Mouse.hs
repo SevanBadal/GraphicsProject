@@ -1,5 +1,5 @@
 module Mouse where
-
+-- https://lokathor.gitbooks.io/using-haskell/content/opengl/camera.html
 import Linear
 import Graphics.GL.Types
 import qualified Graphics.UI.GLFW as GLFW
@@ -13,10 +13,8 @@ data MouseInfo = MouseInfo {
     frontVec :: V3 GLfloat
 } deriving Show
 
--- type CursorPosCallback = Window -> Double -> Double -> IO ()
 cursorPosCallback :: IORef MouseInfo -> GLFW.CursorPosCallback
 cursorPosCallback ref window xpos ypos = do
-    --putStrLn $ "x: " ++ show x ++ ", y:" ++ show y
     modifyIORef ref $ \oldInfo -> let
         (lastX, lastY) = case lastXY oldInfo of
             Nothing -> (xpos,ypos)

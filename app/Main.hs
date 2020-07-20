@@ -1,37 +1,40 @@
 module Main where
 -------------------
--- Important References:
--- https://dpwright.com/posts/2015/03/25/the-haskell-gl-package/
--- https://lokathor.gitbooks.io/using-haskell/content/opengl/transformations.html
--- https://whatthefunctional.wordpress.com/2019/03/27/writing-a-ray-tracer-in-haskell-part-1/
--- https://books.google.com/books?id=xPu3mN2FPl4C&pg=PT195&lpg=PT195&dq=opengl+Icosahedron+vertices&source=bl&ots=mQdXanaaqq&sig=ACfU3U1kO7KQzRM3Gm1pzKr3klLsV5h8gg&hl=en&sa=X&ved=2ahUKEwiRobej1srqAhXbGc0KHc4kAaUQ6AEwDHoECAkQAQ#v=onepage&q=opengl%20Icosahedron%20vertices&f=false
+-- GLFW callback support: https://whatthefunctional.wordpress.com/2019/03/27/writing-a-ray-tracer-in-haskell-part-1/
+-- Initial Verticies for Icosahedron: https://books.google.com/books?id=xPu3mN2FPl4C&pg=PT195&lpg=PT195&dq=opengl+Icosahedron+vertices&source=bl&ots=mQdXanaaqq&sig=ACfU3U1kO7KQzRM3Gm1pzKr3klLsV5h8gg&hl=en&sa=X&ved=2ahUKEwiRobej1srqAhXbGc0KHc4kAaUQ6AEwDHoECAkQAQ#v=onepage&q=opengl%20Icosahedron%20vertices&f=false
+-- My own scripts for calculating my object normals: https://gist.github.com/SevanBadal/57d53747d6a15dd3207c776e6ecb4bf6
 -------------------
+-- My modules
 import ShaderUtility
 import IcoShader
 import Mouse
 import Camera
 import Keys
 import Texture
-import Control.Lens
-import qualified Light as Light
-import qualified Card as Card
 import LightShader
 import CardShader
 import qualified Icosahedron as Ico
-import Graphics.GL.Core33 -- ensure support for Version 330
-import qualified Graphics.UI.GLFW as GLFW
-import Foreign -- C lang bindings
-import Foreign.C.String (withCAStringLen, newCString)
+import qualified Light as Light
+import qualified Card as Card
+
+import Control.Lens
 import Control.Monad (when, forM_)
 import Control.Exception (bracket)
+import qualified Data.Set as S 
+import Linear -- Transformation and Projection support
+
+import Graphics.GL.Core33 -- ensure support for Version 330
+import qualified Graphics.UI.GLFW as GLFW
+import Graphics.GL.Types
+import Codec.Picture (readImage, generateImage, convertRGBA8, DynamicImage(..), Image(..), PixelRGB8(..), PixelRGBA8(..))
+
+import Foreign
+import Foreign.C.String (withCAStringLen, newCString)
 import Data.Bits
 import Data.IORef
-import Graphics.GL.Types
--- JuicyPixels for textures
-import Codec.Picture (readImage, generateImage, convertRGBA8, convertRGB8, DynamicImage(..), Image(..), PixelRGB8(..), PixelRGBA8(..))
+
 import qualified Data.Vector.Storable as VS
-import Linear -- Transformation and Projection support
-import qualified Data.Set as S
+
 
 
 windowWidth = 1000
@@ -72,7 +75,6 @@ display (Just window) = do
             GLFW.makeContextCurrent (Just window)
             (x,y) <- GLFW.getFramebufferSize window
             glViewport 0 0 (fromIntegral x) (fromIntegral y)
-        
 ------------------------------------------------------------------------------------------------------
 --          Ready Shader Programs
 ------------------------------------------------------------------------------------------------------
@@ -87,7 +89,7 @@ display (Just window) = do
             glGenTextures 1 dice_textureP
             diceText <- peek dice_textureP
             glBindTexture GL_TEXTURE_2D diceText
-            numberTextureImage <- loadImageTexture "app/numbers_with_ref.png"
+            numberTextureImage <- loadImageTexture "images/numbers_with_ref.png"
             VS.unsafeWith (imageData numberTextureImage) $ \dataP ->
                 glTexImage2D GL_TEXTURE_2D 0 GL_RGBA (fromIntegral $ imageWidth numberTextureImage) (fromIntegral $ imageHeight numberTextureImage) 0 GL_RGBA GL_UNSIGNED_BYTE (castPtr dataP)
             glGenerateMipmap GL_TEXTURE_2D
@@ -98,7 +100,7 @@ display (Just window) = do
             glGenTextures 1 card_oneP
             card_oneTexture <- peek card_oneP
             glBindTexture GL_TEXTURE_2D card_oneTexture
-            cardOneTextureImage <- loadImageTexture "app/card_gloss.png"
+            cardOneTextureImage <- loadImageTexture "images/card_gloss.png"
             VS.unsafeWith (imageData cardOneTextureImage) $ \dataP ->
                 glTexImage2D GL_TEXTURE_2D 0 GL_RGBA (fromIntegral $ imageWidth cardOneTextureImage) (fromIntegral $ imageHeight cardOneTextureImage) 0 GL_RGBA GL_UNSIGNED_BYTE (castPtr dataP)
             glGenerateMipmap GL_TEXTURE_2D
@@ -108,7 +110,7 @@ display (Just window) = do
             glGenTextures 1 card_twoP
             card_twoTexture <- peek card_twoP
             glBindTexture GL_TEXTURE_2D card_twoTexture
-            cardTwoTextureImage <- loadImageTexture "app/card_image.png"
+            cardTwoTextureImage <- loadImageTexture "images/card_image.png"
             VS.unsafeWith (imageData cardTwoTextureImage) $ \dataP ->
                 glTexImage2D GL_TEXTURE_2D 0 GL_RGBA (fromIntegral $ imageWidth cardTwoTextureImage) (fromIntegral $ imageHeight cardTwoTextureImage) 0 GL_RGBA GL_UNSIGNED_BYTE (castPtr dataP)
             glGenerateMipmap GL_TEXTURE_2D
@@ -135,7 +137,7 @@ display (Just window) = do
             let floatSize = (fromIntegral $ sizeOf (0.0::GLfloat)) :: GLsizei
             let threeFloatOffset = castPtr $ plusPtr nullPtr (fromIntegral $ 3*floatSize)
             let fiveFloatOffset = castPtr $ plusPtr nullPtr (fromIntegral $ 5*floatSize)
---          Dice: VAO
+----------- Dice: VAO
             ico_vaoP <- malloc
             glGenVertexArrays 1 ico_vaoP
             ico_vao <- peek ico_vaoP
@@ -156,8 +158,7 @@ display (Just window) = do
             glVertexAttribPointer 2 2 GL_FLOAT GL_FALSE (8*floatSize) threeFloatOffset
             glEnableVertexAttribArray 2
             glBindVertexArray 0
-
---          Light: VAO
+----------- Light: VAO
             light_vaoP <- malloc
             glGenVertexArrays 1 light_vaoP
             light_vao <- peek light_vaoP
@@ -172,8 +173,7 @@ display (Just window) = do
             glVertexAttribPointer 0 3 GL_FLOAT GL_FALSE (3*floatSize) nullPtr 
             glEnableVertexAttribArray 0
             glBindVertexArray 0
-
---          Card: VAO
+----------- Card: VAO
             card_vaoP <- malloc
             glGenVertexArrays 1 card_vaoP
             card_vao <- peek card_vaoP
@@ -313,7 +313,7 @@ display (Just window) = do
 ------------------------------------------------------------------------------------------------------
 --                      Draw Cards
 ------------------------------------------------------------------------------------------------------
-                        -- Card
+--                      Card One
                         glUseProgram card_shaderProgram
                         glBindVertexArray card_vao
                         -- Bind Card Texture
@@ -337,7 +337,7 @@ display (Just window) = do
                         
                         glUniformMatrix4fv viewLoc 1 GL_FALSE (castPtr viewP)
                         glUniformMatrix4fv projectionLoc 1 GL_FALSE (castPtr projP)
- 
+
                         let card = Card.cards!!0
                         let modelMat = mkTransformation (axisAngle (V3 (0::GLfloat) 1 0) (sin $ timeValue * 0.9)) card
                         -- let modelMat = mkTransformationMat identity card
@@ -349,7 +349,7 @@ display (Just window) = do
                         glUniformMatrix4fv modelLoc 1 GL_FALSE (castPtr modelP)
                         glDrawArrays GL_TRIANGLES 0 36
                         glBindTexture GL_TEXTURE_2D 0 
-                        -- draw card two
+--                      Card Two
                         glBindTexture GL_TEXTURE_2D card_twoTexture
                         glActiveTexture GL_TEXTURE0
                         cardTextureLocation <- glGetUniformLocation card_shaderProgram cardTexture
