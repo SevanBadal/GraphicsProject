@@ -301,7 +301,7 @@ main = bracketGLFW $ do
                             let modelMat = mkTransformation (axisAngle (V3 (1.0::GLfloat) 0.5 0.5) ((sin timeValue))) die
                             -- let modelMat = mkTransformationMat identity die
                             poke modelP (transpose modelMat)
-                            glUniform3f objectColorLoc (0.5::GLfloat) (0.5::GLfloat) (0.6::GLfloat)
+                            glUniform3f objectColorLoc (0.35::GLfloat) (0.35::GLfloat) (0.35::GLfloat)
                             glUniform3f lightColorLoc (1.0::GLfloat) (1.0::GLfloat) (1.0::GLfloat)
                             glUniform3f lightPosLoc (lp^._x) (lp^._y) (lp^._z)
                             glUniform3f viewPosLoc ((getCameraPos camera)^._x) ((getCameraPos camera)^._y) ((getCameraPos camera)^._z)
