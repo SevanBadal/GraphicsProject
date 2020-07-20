@@ -254,7 +254,7 @@ main = bracketGLFW $ do
                         mouseInfo <- readIORef mouseRef
                         let camera = cameraTemp{cameraFront = frontVec mouseInfo}
                         -- clear the screen
-                        glClearColor 0.85 0.85 0.90 1.0
+                        glClearColor 0.10 0.12 0.15 1.0
                         glClear (GL_COLOR_BUFFER_BIT .|. GL_DEPTH_BUFFER_BIT)
                         let lp = Light.light_position
                         let viewMat = toViewMatrix camera
@@ -292,7 +292,7 @@ main = bracketGLFW $ do
                         glUniformMatrix4fv projectionLoc 1 GL_FALSE (castPtr projP)
                         forM_ (zip Ico.dice [0..]) $ \(die, i) -> do
                             let angle = 100 * i
-                            let modelMat = mkTransformation (axisAngle (V3 (1.0::GLfloat) 0.5 0.5) ((sin timeValue))) die
+                            let modelMat = mkTransformation (axisAngle (V3 (1.0::GLfloat) 0.5 0.5) ((timeValue * 0.3))) die
                             -- let modelMat = mkTransformationMat identity die
                             poke modelP (transpose modelMat)
                             glUniform3f objectColorLoc (0.35::GLfloat) (0.35::GLfloat) (0.35::GLfloat)
@@ -358,7 +358,7 @@ main = bracketGLFW $ do
                         glUniformMatrix4fv projectionLoc 1 GL_FALSE (castPtr projP)
  
                         let card = Card.cards!!0
-                        let modelMat = mkTransformation (axisAngle (V3 (0::GLfloat) 1 0) (sin $ timeValue * 0.4)) card
+                        let modelMat = mkTransformation (axisAngle (V3 (0::GLfloat) 1 0) (sin $ timeValue * 0.8)) card
                         -- let modelMat = mkTransformationMat identity card
                         glUniform3f objectColorLoc (0.0::GLfloat) (0.0::GLfloat) (0.0::GLfloat)
                         glUniform3f lightColorLoc (1.0::GLfloat) (1.0::GLfloat) (1.0::GLfloat)

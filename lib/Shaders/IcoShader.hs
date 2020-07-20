@@ -68,7 +68,7 @@ icoFragmentShaderSource = unlines [
     ,"    float n = noise(pos);"
     ,"    n = smoothstep(0.4f,0.7f, n);"
     ,"    vec3 ObjectColor = vec3(n) * vec3(0.7);"      
-    ,"    float ambientStrength = 0.4f;"
+    ,"    float ambientStrength = 0.1f;"
     ,"    vec3 ambient = lightColor * ambientStrength;"
     ,"    // diffuse"
     ,"    vec3 lightDir = normalize(lightPos - FragPos);"
