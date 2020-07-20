@@ -57,7 +57,7 @@ main = bracketGLFW $ do
     GLFW.windowHint (GLFW.WindowHint'OpenGLForwardCompat True); -- required on MacOS
     GLFW.windowHint (GLFW.WindowHint'OpenGLProfile GLFW.OpenGLProfile'Core)
     GLFW.windowHint (GLFW.WindowHint'Resizable False)
-    maybeWindow <- GLFW.createWindow windowWidth windowHeight "Assignment 4" Nothing Nothing
+    maybeWindow <- GLFW.createWindow windowWidth windowHeight "Final Project" Nothing Nothing
     display maybeWindow
 
 display :: Maybe GLFW.Window -> IO()
