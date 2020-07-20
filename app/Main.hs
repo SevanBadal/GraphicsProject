@@ -364,7 +364,7 @@ main = bracketGLFW $ do
                         glUniformMatrix4fv projectionLoc 1 GL_FALSE (castPtr projP)
  
                         let card = Card.cards!!0
-                        let modelMat = mkTransformation (axisAngle (V3 (0::GLfloat) 1 0) (timeValue * 0.4)) card
+                        let modelMat = mkTransformation (axisAngle (V3 (0::GLfloat) 1 0) (sin $ timeValue * 0.4)) card
                         -- let modelMat = mkTransformationMat identity card
                         glUniform3f objectColorLoc (0.0::GLfloat) (0.0::GLfloat) (0.0::GLfloat)
                         glUniform3f lightColorLoc (1.0::GLfloat) (1.0::GLfloat) (1.0::GLfloat)
