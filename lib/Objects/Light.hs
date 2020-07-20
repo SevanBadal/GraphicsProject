@@ -53,7 +53,7 @@ verticies = [
 
 lights :: [V3 GLfloat]
 lights = [
-    V3 0 3 (4)]
+    V3 0 (2.5) (4)]
 
 light_position :: V3 GLfloat
 light_position = (lights !! 0)

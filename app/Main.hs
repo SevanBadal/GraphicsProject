@@ -162,12 +162,6 @@ main = bracketGLFW $ do
             ico_vbo <- peek ico_vboP
             glBindBuffer GL_ARRAY_BUFFER ico_vbo
             glBufferData GL_ARRAY_BUFFER icoVerticiesSize (castPtr icoVerticesP) GL_STATIC_DRAW
-            -- Ico: element buffer object
-            -- ico_eboP <- malloc
-            -- glGenBuffers 1 ico_eboP
-            -- ico_ebo <- peek ico_eboP
-            -- glBindBuffer GL_ELEMENT_ARRAY_BUFFER ico_ebo
-            -- glBufferData GL_ELEMENT_ARRAY_BUFFER ico_indicesSize (castPtr ico_indicesP) GL_STATIC_DRAW
 
 --          Dice: Attributes
             glVertexAttribPointer 0 3 GL_FLOAT GL_FALSE (8*floatSize) nullPtr
@@ -380,7 +374,7 @@ main = bracketGLFW $ do
                         cardTextureLocation <- glGetUniformLocation card_shaderProgram cardTexture
                         glUniform1i cardTextureLocation 0
                         let card = Card.cards!!1
-                        let modelMat = mkTransformation (axisAngle (V3 (0::GLfloat) (-1) (0)) (timeValue * 0.35)) card
+                        let modelMat = mkTransformation (axisAngle (V3 (0::GLfloat) (-1) (0)) (timeValue)) card
                         -- let modelMat = mkTransformationMat identity card
                         glUniform3f objectColorLoc (1.0::GLfloat) (1.0::GLfloat) (1.0::GLfloat)
                         glUniform3f lightColorLoc (1.0::GLfloat) (1.0::GLfloat) (1.0::GLfloat)
@@ -389,7 +383,6 @@ main = bracketGLFW $ do
                         poke modelP (transpose modelMat)
                         glUniformMatrix4fv modelLoc 1 GL_FALSE (castPtr modelP)
                         glDrawArrays GL_TRIANGLES 0 36
-                        
                         glBindVertexArray 0  
                         glBindTexture GL_TEXTURE_2D 0 
 ------------------------------------------------------------------------------------------------------
