@@ -89,7 +89,7 @@ display (Just window) = do
             glGenTextures 1 dice_textureP
             diceText <- peek dice_textureP
             glBindTexture GL_TEXTURE_2D diceText
-            numberTextureImage <- loadImageTexture "images/numbers_with_ref.png"
+            numberTextureImage <- loadImageTexture "images/numbers_with_ref.png" 500 400
             VS.unsafeWith (imageData numberTextureImage) $ \dataP ->
                 glTexImage2D GL_TEXTURE_2D 0 GL_RGBA (fromIntegral $ imageWidth numberTextureImage) (fromIntegral $ imageHeight numberTextureImage) 0 GL_RGBA GL_UNSIGNED_BYTE (castPtr dataP)
             glGenerateMipmap GL_TEXTURE_2D
@@ -100,7 +100,7 @@ display (Just window) = do
             glGenTextures 1 card_oneP
             card_oneTexture <- peek card_oneP
             glBindTexture GL_TEXTURE_2D card_oneTexture
-            cardOneTextureImage <- loadImageTexture "images/card_gloss.png"
+            cardOneTextureImage <- loadImageTexture "images/card_gloss.png" 624 445
             VS.unsafeWith (imageData cardOneTextureImage) $ \dataP ->
                 glTexImage2D GL_TEXTURE_2D 0 GL_RGBA (fromIntegral $ imageWidth cardOneTextureImage) (fromIntegral $ imageHeight cardOneTextureImage) 0 GL_RGBA GL_UNSIGNED_BYTE (castPtr dataP)
             glGenerateMipmap GL_TEXTURE_2D
@@ -110,7 +110,7 @@ display (Just window) = do
             glGenTextures 1 card_twoP
             card_twoTexture <- peek card_twoP
             glBindTexture GL_TEXTURE_2D card_twoTexture
-            cardTwoTextureImage <- loadImageTexture "images/card_image.png"
+            cardTwoTextureImage <- loadImageTexture "images/card_image.png" 624 445
             VS.unsafeWith (imageData cardTwoTextureImage) $ \dataP ->
                 glTexImage2D GL_TEXTURE_2D 0 GL_RGBA (fromIntegral $ imageWidth cardTwoTextureImage) (fromIntegral $ imageHeight cardTwoTextureImage) 0 GL_RGBA GL_UNSIGNED_BYTE (castPtr dataP)
             glGenerateMipmap GL_TEXTURE_2D

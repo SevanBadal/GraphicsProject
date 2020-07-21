@@ -6,14 +6,14 @@ import qualified Data.Vector.Storable as VS
 import Graphics.GL.Types
 import Graphics.GL.Core33 -- ensure support for Version 330
 
-loadImageTexture :: [Char] -> IO (Image PixelRGBA8)
-loadImageTexture filePath = do
+loadImageTexture :: [Char] -> Int -> Int -> IO (Image PixelRGBA8)
+loadImageTexture filePath w h = do
     eErrDI0 <- readImage filePath
     dyImage0 <- case eErrDI0 of
         Left e -> do
             putStrLn e
             return $ ImageRGBA8 $ generateImage (\x y ->
-                let x' = fromIntegral x in (PixelRGBA8 x' x' x' x')) 500 400
+                let x' = fromIntegral x in (PixelRGBA8 x' x' x' x')) w h
         Right di -> return di
     let ipixelrgba80 = convertRGBA8 dyImage0
     return ipixelrgba80
