@@ -271,8 +271,7 @@ display (Just window) = do
                         poke projP (transpose projMat)
                         glUniformMatrix4fv viewLoc 1 GL_FALSE (castPtr viewP)
                         glUniformMatrix4fv projectionLoc 1 GL_FALSE (castPtr projP)
-                        forM_ (zip Ico.dice [0..]) $ \(die, i) -> do
-                            let angle = 100 * i
+                        forM_ Ico.dice $ \(die) -> do
                             let modelMat = mkTransformation (axisAngle (V3 (1.0::GLfloat) 0.5 0.5) ((timeValue * 0.8))) die
                             -- let modelMat = mkTransformationMat identity die
                             poke modelP (transpose modelMat)
@@ -303,7 +302,7 @@ display (Just window) = do
                         glUniformMatrix4fv viewLoc 1 GL_FALSE (castPtr viewP)
                         glUniformMatrix4fv projectionLoc 1 GL_FALSE (castPtr projP)
                     
-                        forM_ (zip Light.lights [0..]) $ \(light, i) -> do
+                        forM_ Light.lights $ \(light) -> do
                             let modelMat = mkTransformationMat identity light
                             poke modelP (transpose modelMat)
                             glUniformMatrix4fv modelLoc 1 GL_FALSE (castPtr modelP)
