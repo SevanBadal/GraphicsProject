@@ -10,3 +10,7 @@
 
 ## Result
 ![Screenshot](docs/screen-shot.png)
+
+## Controls
+- `awsd` for left, forward, back, right
+- mouse for pitch and yaw 
